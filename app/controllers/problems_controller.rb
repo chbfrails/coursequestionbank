@@ -23,35 +23,25 @@ class ProblemsController < ApplicationController
   end
 
   def set_filters
-
     session[:filters] = session[:filters].merge params.slice(:search, :tags, :sort_by)
 
     if session[:filters][:tags].is_a? String
       session[:filters][:tags] = self.class.parse_list session[:filters][:tags]
     end
 
-    ["problem_type", "bloom_category"].each do |sub|
-      session[:filters]["#{sub}"] = []
-      if params["#{sub}"]
-          params["#{sub}"].each do |key, value|
-              session[:filters]["#{sub}"] << key if value == "1"
-          end
-        end
+    session[:filters][:problem_type] = []
+    if params[:problem_type]
+      params[:problem_type].each do |key, value|
+          session[:filters][:problem_type] << key if value == "1"
+      end
     end
 
-    # session[:filters][:problem_type] = []
-    # if params[:problem_type]
-    #   params[:problem_type].each do |key, value|
-    #       session[:filters][:problem_type] << key if value == "1"
-    #   end
-    # end
-    #
-    # session[:filters][:bloom_category] = []
-    # if params[:bloom_category]
-    #   params[:bloom_category].each do |key, value|
-    #       session[:filters][:bloom_category] << key if value == "1"
-    #   end
-    # end
+    session[:filters][:bloom_category] = []
+    if params[:bloom_category]
+      params[:bloom_category].each do |key, value|
+          session[:filters][:bloom_category] << key if value == "1"
+      end
+    end
 
     session[:filters][:collections] = []
     if params[:collections]
@@ -59,7 +49,6 @@ class ProblemsController < ApplicationController
           session[:filters][:collections] << Integer(key) if value == "1"
       end
     end
-
     if session[:filters][:collections].include?(0)
       session[:filters][:collections] = []
     end
@@ -74,16 +63,8 @@ class ProblemsController < ApplicationController
   end
 
   def index
-    # debugger
-    if can? :manage, Collection and @current_user.collections
-      @collections = @current_user.collections + Collection.where(:access_level => 2) + Collection.where(:access_level => 3)
-    else
-      @collections = Collection.where(:access_level => 3)
-    end
-    # @is_student = cannot? :manage Collections
-
+    @collections = @current_user.collections
     @problems = Problem.filter(@current_user, session[:filters].clone, Problem.find_by_id(flash[:bump_problem]))
-    # debugger
   end
 
   def new
@@ -98,7 +79,7 @@ class ProblemsController < ApplicationController
         flash[:error] = "Could not find #{params[:parent_uid]}, using default previous question"
       end
     end
-
+    
     privacy = params[:privacy] ? params[:privacy].strip.downcase : nil
     category = Problem.all_bloom_categories.include?(params[:category]) ? params[:category] : nil
     collections = []
@@ -114,7 +95,6 @@ class ProblemsController < ApplicationController
       problem = RuqlReader.read_problem(@current_user, params[:ruql_source])
       problem.previous_version = previous_version
       problem.is_public = privacy == 'public'
-      problem.access_level = 1
       problem.bloom_category = category
       problem.save
       problem.add_tags(self.class.parse_list params[:tag_names])
@@ -150,22 +130,16 @@ class ProblemsController < ApplicationController
     problem = Problem.find(params[:id])
 
     if !params[:privacy].nil?
-
       authorize! :set_privacy, problem
       privacy = params[:privacy].downcase.strip
       if privacy == 'public'
-        # problem.is_public = true
-        problem.access_level = 2
-      elsif privacy == 'share'
-        problem.access_level = 3
+        problem.is_public = true
       elsif privacy == 'private'
-        # problem.is_public = false
-        problem.access_level = 1
+        problem.is_public = false
       else
         return
       end
       problem.save
-
       flash[:notice] = "Problem changed to #{privacy}" if !request.xhr?
     end
 
@@ -278,11 +252,6 @@ class ProblemsController < ApplicationController
     redirect_to :back
   end
 
-  def minorupdate
-    @problem = Problem.find(params[:id])
-    @ruql_source = flash[:ruql_source]
-  end
-
   def supersede
     @problem = Problem.find(params[:id])
     @ruql_source = flash[:ruql_source]
@@ -291,31 +260,6 @@ class ProblemsController < ApplicationController
   def view_history
     @problem = Problem.find(params[:id])
     @history = @problem.history
-  end
-
-  def edit_minor
-
-    new_problem = RuqlReader.read_problem(@current_user, params[:ruql_source])
-    original_problem = Problem.find_by_uid(params[:parent_uid])
-
-    if !new_problem[:json].nil?
-      if original_problem[:json] != new_problem[:json]
-        original_problem[:json] = new_problem[:json]
-        original_problem.save
-
-        flash[:notice] = "Question updated."
-      else
-        flash[:notice] = "Nothing changes."
-      end
-
-    end
-
-    if request.xhr?
-      render :json => {'error' => nil}
-    else
-      redirect_to problems_path
-    end
-
   end
 
 end

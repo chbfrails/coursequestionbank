@@ -7,22 +7,10 @@ Feature: Administrator panel for authorizing users
     Given I am signed in with uid "1234" and provider "github"
     And I am on the dashboard
 
-  Scenario: We can not add new users from panel since the features changed
-
+  Scenario: visit the admin panel and add a user
     When I am on the admin panel
-    Then I should not see "new-provider"
-    And I should not see "new-privilege"
-    And I should not see "new-submit"
-    And I should see "stevenwuyinze"
-    And I should see "Student"
-
-  Scenario: I should see the users with different privilage
-      When I am on the admin panel
-      Then I should see "stevenwuyinze"
-      Then I should see "Student"
-      Then I should see "Another-UGSI"
-      Then I should see "Instructor"
-
-  Scenario: As an admin, I should be able to change the privilage for different users
-      When I am on the admin panel
-      Then I should see a button "Update"
+    When I fill in "new-username" with "RAILSDOESNTSCALE"
+    And I select "github" from "new-provider"
+    And I select "instructor" from "new-privilege"
+    And I press "new-submit"
+    Then I should see "Whitelist updated"
