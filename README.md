@@ -15,6 +15,9 @@ You need to run a solr process during local development (or Cloud9 for those who
 
 When running locally, you can click the "Dev Login" button and login as either `saas` (Instructor privilege) or `saas-admin` (Admin privilege) with no password needed.
 
+The file `db/sample-questions.rb` is suitable for importing if you want
+to have some content to browse (log in to app, go to Collections, then Import).
+
 ## Deployment
 
 Currently set up to deploy to Heroku.  
